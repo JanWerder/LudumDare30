@@ -1,10 +1,21 @@
 Asteroid = {}
 Asteroid.__index = Asteroid
+asteroidTypes = {0,0,0}
+asteroidImages = {love.graphics.newImage("images/american_asteroid.png"),love.graphics.newImage("images/germany_asteroid.png"),love.graphics.newImage("images/russian_asteroid.png")}
 
 function Asteroid.create(x, y, angle)
     local asteroidMan = {}
     setmetatable(asteroidMan, Asteroid)
-    asteroidMan.img  = love.graphics.newImage("images/asteroid.png")
+
+    local min = math.min(unpack(asteroidTypes))
+
+    for i=1,#asteroidTypes do
+      if asteroidTypes[i] == min then
+        min = i
+        asteroidTypes[i] = asteroidTypes[i] + 1
+      end
+    end
+
 
 
     asteroidMan.x = x
@@ -21,7 +32,11 @@ function Asteroid.create(x, y, angle)
 
     asteroidMan.shape = Collider:addCircle(x,y, 40)
     asteroidMan.shape.class = "Asteroid"
-    for i=1,numScaled do
+
+    asteroidMan.shape.type = min
+    asteroidMan.img  = asteroidImages[min]
+
+    for i=1,numScaled[min] do
       asteroidMan.shape:scale(1.1)
     end
 
@@ -44,5 +59,5 @@ end
 
 function Asteroid:draw()
   --self.shape:draw('fill')
-  love.graphics.draw(self.img, self.x,self.y,math.rad(self.angle),asteroidScale,asteroidScale,self.img:getWidth()/2,self.img:getHeight()/2 )
+  love.graphics.draw(self.img, self.x,self.y,math.rad(self.angle),asteroidScale[self.shape.type],asteroidScale[self.shape.type],self.img:getWidth()/2,self.img:getHeight()/2 )
 end

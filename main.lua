@@ -1,6 +1,6 @@
-HC = require 'libs.hardoncollider'
-Camera = require "libs.camera"
-lovebird = require("libs.lovebird")
+HC = require 'libs/HardonCollider'
+Camera = require "libs/camera"
+lovebird = require("libs/lovebird")
 require 'player'
 require 'asteroid'
 require 'bullet'
@@ -10,12 +10,17 @@ require 'shaders/init'
 love.filesystem.enumerate = love.filesystem.enumerate or love.filesystem.getDirectoryItems
 
 function love.load()
+
+  if not love.filesystem.exists( "highscore.txt" ) then
+    love.filesystem.write( "highscore.txt", "0")
+  end
+
   music = love.audio.newSource("music/song01.mp3")
   music:setVolume(0.8)
   music:play()
 
   love.graphics.setFont(love.graphics.newFont("fonts/PTM55FT.ttf",20))
-  love.filesystem.setIdentity("Shadder Effects")
+  love.filesystem.setIdentity("Asteroid Rage")
   shaderlist = love.filesystem.enumerate( "shaders/" )
 
   local rem
@@ -34,7 +39,9 @@ function love.load()
   if love.math then love.math.setRandomSeed(os.time()) end
     Collider = HC(100, onCollision)
 
-    numScaled = 0
+    numScaled = {0,0,0}
+    asteroidScale = {1,1,1}
+
     entities = {}
     player = Player.create(200, 200)
     cam = Camera(player.x, player.y)
@@ -42,10 +49,10 @@ function love.load()
 
     objective = Objective.create(math.random(-1000,1000),math.random(-1000,1000))
     table.insert(entities,objective)
-    for i = 1,120 do
+    for i = 1,100 do
       table.insert(entities,Asteroid.create(math.random(-2000,2000),math.random(-2000,2000),270))
     end
-    asteroidScale = 1
+
     spawnCount = 1
     shaders:set(2, shaderlist[2])
     shaders:refresh()
@@ -59,7 +66,7 @@ function love.update(dt)
   table.insert(entities,Asteroid.create(entities[1].x-400,entities[1].y-400,180))
   table.insert(entities,Asteroid.create(entities[1].x+400,entities[1].y-400,0))
   table.insert(entities,Asteroid.create(entities[1].x-400,entities[1].y+400,0))
-  spawnCount = 1.5
+  spawnCount = 2
   end
 
   Collider:update(dt)
@@ -110,6 +117,9 @@ function love.draw()
     love.graphics.draw(love.graphics.newImage("images/arrow.png"),800/2,600-30,math.atan2(objective.y-entities[1].y, objective.x-entities[1].x)+90,1,1,22.5,22.5)
     love.graphics.print("Rescues: " .. entities[1].score,7,22)
     if not entities[1].isAlive then
+      if not highscore then
+        highscore = 0
+      end
       love.graphics.print("Highscore: " .. highscore,620,22)
     end
 
@@ -153,18 +163,27 @@ function onCollision(dt, shapeA, shapeB, mtvX, mtvY)
     if shapeB.class == "Bullet" then
     table.remove(entities,shapeB.no)
     table.remove(entities,shapeA.no)
-    end
-    if shapeA.class == "Bullet" then
-    table.remove(entities,shapeA.no)
-    table.remove(entities,shapeB.no)
-    end
-    asteroidScale = asteroidScale * 1.1
-    numScaled = numScaled + 1
+
+    asteroidScale[shapeA.type] = asteroidScale[shapeA.type] * 1.1
+    numScaled[shapeA.type] = numScaled[shapeA.type] + 1
     for i=1,#entities do
-      if entities[i].shape.class == "Asteroid" then
+      if entities[i].shape.class == "Asteroid" and entities[i].shape.type == shapeA.type then
         entities[i].shape:scale(1.1)
       end
     end
+    elseif shapeA.class == "Bullet" then
+    table.remove(entities,shapeA.no)
+    table.remove(entities,shapeB.no)
+
+    asteroidScale[shapeB.type] = asteroidScale[shapeB.type] * 1.1
+    numScaled[shapeB.type] = numScaled[shapeB.type] + 1
+    for i=1,#entities do
+      if entities[i].shape.class == "Asteroid" and entities[i].shape.type == shapeB.type then
+        entities[i].shape:scale(1.1)
+      end
+    end
+    end
+
   end
 end
 
